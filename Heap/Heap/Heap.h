@@ -5,6 +5,15 @@
 
 using namespace std;
 
+enum TreeOrder
+{
+	Preorder,
+	Inorder,
+	Postorder,
+	Levelorder,
+	Max
+};
+
 template<typename T>
 class HeapTree
 {
@@ -29,20 +38,13 @@ public:
 		if (m_RootNode == NULL)
 		{
 			m_RootNode = InNode;
-			InsertList(InNode, m_LastNodeList);
+			InsertList(InNode, &m_LastNodeList);
 			return;
 		}
 
-		HeapNode* lastNode = NULL;
-		int result = GetInsertLocation(lastNode);
-		if (result == -1)
-		{
-			lastNode->Left = InNode;
-		}
-		else if (result == 1)
-		{
-			lastNode->Right = InNode;
-		}
+		GetInsertLocation(InNode);
+		InsertList(InNode, &m_LastNodeList);
+		ReplaceNode(GetLastHeapNode());
 	}
 
 	void PopNode()
@@ -61,34 +63,79 @@ public:
 		}
 	}
 
-private:
-	void InsertList(HeapNode* InHeapNode, ListNode* InListNode = NULL)
+	void PrintTree(TreeOrder InOrder)
 	{
-		if (InListNode == NULL)
+		if (m_RootNode == NULL)
 		{
-			ListNode* listNode = new ListNode();
-			listNode->Node = InHeapNode;
-			listNode->Next = NULL;
-			InListNode = listNode;
+			return;
+		}
+
+		switch (InOrder)
+		{
+		case TreeOrder::Preorder:
+			cout << "Preorder!" << endl;
+			PrintPreorder(m_RootNode);
+			break;
+
+		case TreeOrder::Inorder:
+			cout << "Inorder!" << endl;
+			PrintInorder(m_RootNode);
+			break;
+
+		case TreeOrder::Postorder:
+			cout << "Postorder!" << endl;
+			PrintPostorder(m_RootNode);
+			break;
+
+		default:
+			break;
+		}
+
+		cout << endl;
+	}
+
+private:
+	void InsertList(HeapNode* InHeapNode, ListNode** InListNode = NULL)
+	{
+		if (*InListNode == NULL)
+		{
+			*InListNode = new ListNode();
+			(*InListNode)->Node = InHeapNode;
+			(*InListNode)->Next = NULL;
 
 			return;
 		}
 
-		if (InListNode->Next == NULL)
+		if ((*InListNode)->Next == NULL)
 		{
 			ListNode* listNode = new ListNode();
 			listNode->Node = InHeapNode;
 			listNode->Next = NULL;
-			InListNode->Next = listNode;
+			(*InListNode)->Next = listNode;
 			return;
 		}
 		else
 		{
-			InsertList(InHeapNode, InListNode->Next);
+			InsertList(InHeapNode, &(*InListNode)->Next);
 		}
 	}
 
-	int GetInsertLocation(HeapNode& InNode)
+	void ChangeList(HeapNode* InHeapParent, HeapNode* InHeapCur, ListNode** InListNode)
+	{
+		if (*InListNode == NULL)
+		{
+			return;
+		}
+
+		if ((*InListNode)->Node == InHeapParent)
+		{
+			(*InListNode)->Node = InHeapCur;
+		}
+
+		ChangeList(InHeapParent, InHeapCur, &(*InListNode)->Next);
+	}
+
+	void GetInsertLocation(HeapNode* InNode)
 	{
 		if (m_ParentNodeList == NULL)
 		{
@@ -100,13 +147,13 @@ private:
 		{
 			if (m_ParentNodeList->Node->Left == NULL)
 			{
-				InNode = m_ParentNodeList->Node;
-				return -1;
+				m_ParentNodeList->Node->Left = InNode;
+				InNode->Parent = m_ParentNodeList->Node;
 			}
 			else if (m_ParentNodeList->Node->Right == NULL)
 			{
-				InNode = m_ParentNodeList->Node;
-				return 1;
+				m_ParentNodeList->Node->Right = InNode;
+				InNode->Parent = m_ParentNodeList->Node;
 			}
 			else
 			{
@@ -114,8 +161,6 @@ private:
 				GetInsertLocation(InNode);
 			}
 		}
-
-		return -99;
 	}
 
 	HeapNode* GetLastHeapNode()
@@ -132,6 +177,92 @@ private:
 		}
 
 		return listNode->Node;
+	}
+
+private:
+	void ReplaceNode(HeapNode* InNode)
+	{
+		if (InNode == NULL || InNode->Parent == NULL)
+		{
+			return;
+		}
+
+		int result = GetDataOrder(InNode->Parent, InNode->Data);
+
+		if (result == -1)
+		{
+			return;
+		}
+
+		HeapNode* temp = InNode->Parent;
+		if (InNode->Parent->Parent != NULL)
+		{
+			if (InNode->Parent->Parent->Left == InNode->Parent)
+			{
+				InNode->Parent->Parent->Left = InNode;
+			}
+			else if (InNode->Parent->Parent->Right == InNode->Parent)
+			{
+				InNode->Parent->Parent->Right = InNode;
+			}
+
+			InNode->Parent = InNode->Parent->Parent;
+		}
+		else
+		{
+			m_RootNode = InNode;
+			InNode->Parent = NULL;
+		}
+
+
+		HeapNode* inNodeLeft = InNode->Left;
+		HeapNode* inNodeRight = InNode->Right;
+
+		if (inNodeLeft == NULL && inNodeRight == NULL)
+		{
+			ChangeList(temp, InNode, &m_ParentNodeList);
+			ChangeList(InNode, temp, &m_LastNodeList);
+		}
+		else
+		{
+			ChangeList(InNode, temp, &m_ParentNodeList);
+		}
+
+		if (temp->Left != InNode)
+		{
+			InNode->Left = temp->Left;
+			InNode->Right = temp;
+		}
+		else
+		{
+			InNode->Left = temp;
+			InNode->Right = temp->Right;
+		}
+
+		if (InNode->Left != NULL)
+		{
+			InNode->Left->Parent = InNode;
+		}
+
+		if (InNode->Right != NULL)
+		{
+			InNode->Right->Parent = InNode;
+		}
+
+		temp->Left = inNodeLeft;
+		temp->Right = inNodeRight;
+
+		if (temp->Left != NULL)
+		{
+			temp->Left->Parent = temp;
+		}		
+		
+		if (temp->Right != NULL)
+		{
+			temp->Right->Parent = temp;
+		}
+
+		ReplaceNode(InNode);
 	}
 
 private:
@@ -187,10 +318,48 @@ private:
 		return result;
 	}
 
+private:
+	void PrintPreorder(HeapNode* InNode)
+	{
+		if (InNode == NULL)
+		{
+			return;
+		}
+
+		cout << *InNode->Data << " -> ";
+		PrintPreorder(InNode->Left);
+		PrintPreorder(InNode->Right);
+	}
+
+	void PrintInorder(HeapNode* InNode = NULL)
+	{
+		if (InNode == NULL)
+		{
+			return;
+		}
+
+		PrintInorder(InNode->Left);
+		cout << *InNode->Data << " -> ";
+		PrintInorder(InNode->Right);
+	}
+
+	void PrintPostorder(HeapNode* InNode = NULL)
+	{
+		if (InNode == NULL)
+		{
+			return;
+		}
+
+		PrintPostorder(InNode->Left);
+		PrintPostorder(InNode->Right);
+		cout << *InNode->Data << " -> ";
+	}
+
 public:
 	struct HeapNode
 	{
 		T* Data;
+		HeapNode* Parent;
 		HeapNode* Left;
 		HeapNode* Right;
 	};
@@ -198,7 +367,7 @@ public:
 	struct ListNode
 	{
 		HeapNode* Node;
-		ListNode* NextNode;
+		ListNode* Next;
 	};
 
 private:
