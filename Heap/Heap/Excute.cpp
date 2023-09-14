@@ -18,5 +18,12 @@ int main()
 
 	heap->PrintTree(TreeOrder::Preorder);
 
+	for (int i = 1; i <= 15; i++)
+	{
+		Heap::HeapNode* node = heap->PopNode();
+		cout << *node->Data << endl;
+		heap->PrintTree(TreeOrder::Preorder);
+	}
+
 	cout << "end" << endl;
 }

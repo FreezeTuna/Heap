@@ -44,15 +44,51 @@ public:
 
 		GetInsertLocation(InNode);
 		InsertList(InNode, &m_LastNodeList);
-		ReplaceNode(GetLastHeapNode());
+		ReplaceInsertNode(GetLastHeapNode());
 	}
 
-	void PopNode()
+	HeapNode* PopNode()
 	{
 		if (m_RootNode == NULL)
 		{
-			return;
+			return NULL;
 		}
+
+		HeapNode* popNode = m_RootNode;
+		HeapNode* lastNode = GetLastHeapNode();
+
+		DeleteList(lastNode, &m_LastNodeList);
+
+		m_RootNode = lastNode;
+
+		if (lastNode == NULL)
+		{
+			return popNode;
+		}
+
+		if (lastNode->Parent->Left == lastNode)
+		{
+			lastNode->Parent->Left = NULL;
+		}
+		else if (lastNode->Parent->Right == lastNode)
+		{
+			lastNode->Parent->Right = NULL;
+		}
+
+		lastNode->Parent = NULL;
+		lastNode->Left = popNode->Left;
+		lastNode->Right = popNode->Right;
+
+		lastNode->Left->Parent = lastNode;
+		lastNode->Right->Parent = lastNode;
+
+		popNode->Left = NULL;
+		popNode->Right = NULL;
+
+
+		ReplacePopNode(m_RootNode);
+
+		return popNode;
 	}
 
 	void RemoveAllNode()
@@ -120,19 +156,36 @@ private:
 		}
 	}
 
-	void ChangeList(HeapNode* InHeapParent, HeapNode* InHeapCur, ListNode** InListNode)
+	void ChangeList(HeapNode* InChangeNode, HeapNode* InHeapCur, ListNode** InListNode)
 	{
 		if (*InListNode == NULL)
 		{
 			return;
 		}
 
-		if ((*InListNode)->Node == InHeapParent)
+		if ((*InListNode)->Node == InChangeNode)
 		{
 			(*InListNode)->Node = InHeapCur;
+			return;
 		}
 
-		ChangeList(InHeapParent, InHeapCur, &(*InListNode)->Next);
+		ChangeList(InChangeNode, InHeapCur, &(*InListNode)->Next);
+	}
+
+	void DeleteList(HeapNode* InDeleteNode, ListNode** InListNode)
+	{
+		if (*InListNode == NULL)
+		{
+			return;
+		}
+
+		if ((*InListNode)->Node == InDeleteNode)
+		{
+			(*InListNode) = NULL;
+			return;
+		}
+
+		DeleteList(InDeleteNode, &(*InListNode)->Next);
 	}
 
 	void GetInsertLocation(HeapNode* InNode)
@@ -180,14 +233,14 @@ private:
 	}
 
 private:
-	void ReplaceNode(HeapNode* InNode)
+	void ReplaceInsertNode(HeapNode* InNode)
 	{
 		if (InNode == NULL || InNode->Parent == NULL)
 		{
 			return;
 		}
 
-		int result = GetDataOrder(InNode->Parent, InNode->Data);
+		int result = GetDataOrder(InNode->Parent, InNode);
 
 		if (result == -1)
 		{
@@ -262,7 +315,144 @@ private:
 			temp->Right->Parent = temp;
 		}
 
-		ReplaceNode(InNode);
+		ReplaceInsertNode(InNode);
+	}
+
+	void ReplacePopNode(HeapNode* InNode)
+	{
+		if (InNode == NULL || (InNode->Left == NULL && InNode->Right == NULL))
+		{
+			return;
+		}
+
+		int result = 0;
+
+		if (InNode->Right != NULL)
+		{
+			result = GetDataOrder(InNode->Left, InNode->Right);
+		}
+		else
+		{
+			result = GetDataOrder(InNode, InNode->Left);
+		}
+		
+		//	Left
+		if(result == -1)
+		{
+			result = GetDataOrder(InNode, InNode->Left);
+			if (result != 1)
+			{
+				return;
+			}
+
+			if (InNode->Parent == NULL)
+			{
+				m_RootNode = InNode->Left;
+				InNode->Left->Parent = NULL;
+			}
+
+			HeapNode* inNodeLeft = InNode->Left;
+			HeapNode* inNodeRight = InNode->Right;
+			HeapNode* inNodeParent = InNode->Parent;
+
+			if (inNodeLeft->Left == NULL && inNodeLeft->Right == NULL)
+			{
+				ChangeList(inNodeLeft, InNode, &m_ParentNodeList);
+				ChangeList(InNode, inNodeLeft, &m_LastNodeList);
+			}
+			else
+			{
+				ChangeList(inNodeLeft, InNode, &m_ParentNodeList);
+			}
+
+			InNode->Left = inNodeLeft->Left;
+			InNode->Right = inNodeLeft->Right;
+			InNode->Parent = inNodeLeft;
+
+			inNodeLeft->Left = InNode;
+			inNodeLeft->Right = inNodeRight;
+			inNodeRight->Parent = inNodeLeft;
+			inNodeLeft->Parent = inNodeParent;
+
+			if (inNodeParent != NULL)
+			{
+				if (inNodeParent->Left == InNode)
+				{
+					inNodeParent->Left = inNodeLeft;
+				}
+				else if (inNodeParent->Right == InNode)
+				{
+					inNodeParent->Right = inNodeLeft;
+				}
+			}
+		}
+		//	Right
+		else if (result == 1)
+		{
+			result = GetDataOrder(InNode, InNode->Right);
+			if (result != 1)
+			{
+				return;
+			}
+
+			if (InNode->Parent == NULL)
+			{
+				m_RootNode = InNode->Right;
+				InNode->Right->Parent = NULL;
+			}
+
+			HeapNode* inNodeLeft = InNode->Left;
+			HeapNode* inNodeRight = InNode->Right;
+			HeapNode* inNodeParent = InNode->Parent;
+
+			if (inNodeRight->Left == NULL && inNodeRight->Right == NULL)
+			{
+				ChangeList(inNodeRight, InNode, &m_ParentNodeList);
+				ChangeList(InNode, inNodeRight, &m_LastNodeList);
+			}
+			else
+			{
+				ChangeList(inNodeRight, InNode, &m_ParentNodeList);
+			}
+
+			InNode->Left = inNodeRight->Left;
+			InNode->Right = inNodeRight->Right;
+			InNode->Parent = inNodeRight;
+
+			inNodeRight->Left = inNodeLeft;
+			inNodeRight->Right = InNode;
+			inNodeRight->Parent = inNodeParent;
+			inNodeLeft->Parent = inNodeRight;
+			
+			if (inNodeParent != NULL)
+			{
+				if (inNodeParent->Left == InNode)
+				{
+					inNodeParent->Left = inNodeRight;
+				}
+				else if (inNodeParent->Right == InNode)
+				{
+					inNodeParent->Right = inNodeRight;
+				}
+			}
+		}
+		else
+		{
+			return;
+		}
+
+
+		if (InNode->Left != NULL)
+		{
+			InNode->Left->Parent = InNode;
+		}
+
+		if (InNode->Right != NULL)
+		{
+			InNode->Right->Parent = InNode;
+		}
+
+		ReplacePopNode(InNode);
 	}
 
 private:
@@ -302,17 +492,17 @@ private:
 		return 0;
 	}
 
-	int GetDataOrder(HeapNode* InRoot, T* InData)
+	int GetDataOrder(HeapNode* InRoot, HeapNode* CompareNode)
 	{
-		string name = typeid(*InData).name();
+		string name = typeid(*(CompareNode->Data)).name();
 		int result = -99999;
 		if (name.find("int") != string::npos)
 		{
-			result = IntDataOrder(InRoot->Data, InData);
+			result = IntDataOrder(InRoot->Data, CompareNode->Data);
 		}
 		else if (name.find("string") != string::npos)
 		{
-			result = StringDataOrder(InRoot->Data, InData);
+			result = StringDataOrder(InRoot->Data, CompareNode->Data);
 		}
 
 		return result;
