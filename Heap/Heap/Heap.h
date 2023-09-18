@@ -59,11 +59,14 @@ public:
 
 		DeleteList(lastNode, &m_LastNodeList);
 
-		m_RootNode = lastNode;
-
-		if (lastNode == NULL)
+		if (popNode == lastNode)
 		{
+			m_RootNode = NULL;
 			return popNode;
+		}
+		else
+		{
+			m_RootNode = lastNode;
 		}
 
 		if (lastNode->Parent->Left == lastNode)
@@ -79,14 +82,29 @@ public:
 		lastNode->Left = popNode->Left;
 		lastNode->Right = popNode->Right;
 
-		lastNode->Left->Parent = lastNode;
-		lastNode->Right->Parent = lastNode;
+		if (lastNode->Left != NULL)
+		{
+			lastNode->Left->Parent = lastNode;
+		}
+
+		if (lastNode->Right != NULL)
+		{
+			lastNode->Right->Parent = lastNode;
+		}
 
 		popNode->Left = NULL;
 		popNode->Right = NULL;
 
 
 		ReplacePopNode(m_RootNode);
+
+		m_ParentNodeList = NULL;
+		SettingParentList(m_RootNode);
+
+		if (m_LastNodeList == NULL)
+		{
+			SettingLastList(m_RootNode);
+		}
 
 		return popNode;
 	}
@@ -232,6 +250,58 @@ private:
 		return listNode->Node;
 	}
 
+	void SettingParentList(HeapNode* InNode)
+	{
+		if (InNode == NULL)
+		{
+			return;
+		}
+
+		if (InNode->Right == NULL)
+		{
+			if (IsInLastList(InNode, m_LastNodeList) == false)
+			{
+				InsertList(InNode, &m_ParentNodeList);
+				return;
+			}
+		}
+
+		SettingParentList(InNode->Left);
+		SettingParentList(InNode->Right);
+	}
+
+	void SettingLastList(HeapNode* InNode)
+	{
+		if (InNode == NULL)
+		{
+			return;
+		}
+
+		if (InNode->Left == NULL)
+		{
+			InsertList(InNode, &m_LastNodeList);
+			return;
+		}
+
+		SettingLastList(InNode->Left);
+		SettingLastList(InNode->Right);
+	}
+
+	bool IsInLastList(HeapNode* InCompare, ListNode* InListNode)
+	{
+		if (InListNode == NULL)
+		{
+			return false;
+		}
+
+		if (InListNode->Node == InCompare)
+		{
+			return true;
+		}
+
+		IsInLastList(InCompare, InListNode->Next);
+	}
+
 private:
 	void ReplaceInsertNode(HeapNode* InNode)
 	{
@@ -334,6 +404,11 @@ private:
 		else
 		{
 			result = GetDataOrder(InNode, InNode->Left);
+
+			if (result == 1)
+			{
+				result = -1;
+			}
 		}
 		
 		//	Left
@@ -357,8 +432,8 @@ private:
 
 			if (inNodeLeft->Left == NULL && inNodeLeft->Right == NULL)
 			{
-				ChangeList(inNodeLeft, InNode, &m_ParentNodeList);
-				ChangeList(InNode, inNodeLeft, &m_LastNodeList);
+				ChangeList(InNode, inNodeLeft, &m_ParentNodeList);
+				ChangeList(inNodeLeft, InNode, &m_LastNodeList);
 			}
 			else
 			{
@@ -371,7 +446,12 @@ private:
 
 			inNodeLeft->Left = InNode;
 			inNodeLeft->Right = inNodeRight;
-			inNodeRight->Parent = inNodeLeft;
+
+			if (inNodeRight != NULL)
+			{
+				inNodeRight->Parent = inNodeLeft;
+			}
+
 			inNodeLeft->Parent = inNodeParent;
 
 			if (inNodeParent != NULL)
@@ -407,8 +487,8 @@ private:
 
 			if (inNodeRight->Left == NULL && inNodeRight->Right == NULL)
 			{
-				ChangeList(inNodeRight, InNode, &m_ParentNodeList);
-				ChangeList(InNode, inNodeRight, &m_LastNodeList);
+				ChangeList(InNode, inNodeRight, &m_ParentNodeList);
+				ChangeList(inNodeRight, InNode, &m_LastNodeList);
 			}
 			else
 			{
