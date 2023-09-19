@@ -42,6 +42,11 @@ public:
 			return;
 		}
 
+		if (IsDataInHeap(InNode))
+		{
+			return;
+		}
+
 		GetInsertLocation(InNode);
 		InsertList(InNode, &m_LastNodeList);
 		ReplaceInsertNode(GetLastHeapNode());
@@ -533,6 +538,49 @@ private:
 		}
 
 		ReplacePopNode(InNode);
+	}
+
+private:
+	bool IsDataInHeap(HeapNode* InData)
+	{
+		if (m_RootNode == NULL)
+		{
+			return false;
+		}
+
+		HeapNode* resultNode = GetSameNode(InData, m_RootNode);
+
+		if(resultNode != NULL)
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	HeapNode* GetSameNode(HeapNode* InData, HeapNode* InNode)
+	{
+		if (InNode == NULL)
+		{
+			return NULL;
+		}
+
+		int result = GetDataOrder(InData, InNode);
+		if (result == 0)
+		{
+			return InNode;
+		}
+
+		HeapNode* resultNode = NULL;
+
+		resultNode = GetSameNode(InData, InNode->Left);
+		
+		if (resultNode == NULL)
+		{
+			resultNode = GetSameNode(InData, InNode->Right);
+		}
+
+		return resultNode;
 	}
 
 private:

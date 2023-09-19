@@ -48,7 +48,7 @@ int main()
 	heap->PrintTree(TreeOrder::Preorder);
 
 	index = new int;
-	*index = 25;
+	*index = 20;
 	heap->InsertNode(Heap::Create(&index));
 
 	node = heap->PopNode();
@@ -56,13 +56,16 @@ int main()
 	heap->PrintTree(TreeOrder::Preorder);
 
 	index = new int;
-	*index = 16;
+	*index = 20;
 	heap->InsertNode(Heap::Create(&index));
 
 	for (int i = 1; i <= 14; i++)
 	{
 		/*Heap::HeapNode**/ node = heap->PopNode();
-		cout << *node->Data << endl;
+		if (node != NULL)
+		{
+			cout << *node->Data << endl;
+		}
 		heap->PrintTree(TreeOrder::Preorder);
 	}
 
